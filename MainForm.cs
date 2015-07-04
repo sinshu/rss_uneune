@@ -88,7 +88,7 @@ public partial class MainForm : Form
 
     private void MainForm_DragDrop(object sender, DragEventArgs e)
     {
-        string[] paths = (string[])e.Data.GetData(DataFormats.FileDrop, false);
+        var paths = (string[])e.Data.GetData(DataFormats.FileDrop, false);
         if (CheckFilePath(paths[0]))
         {
             ReadRssFromFile(paths[0]);
