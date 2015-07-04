@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Text;
 
 public class Article
 {
@@ -14,11 +13,6 @@ public class Article
         this.uri = uri;
         this.date = date;
         this.title = title;
-
-        if (this.date > DateTime.Now)
-        {
-            this.date = DateTime.Now;
-        }
     }
 
     public Blog Blog

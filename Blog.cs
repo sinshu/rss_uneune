@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Xml;
 
 public class Blog
@@ -8,44 +7,64 @@ public class Blog
     private string rssUri;
     private string uri;
     private string title;
-    private ICollection<Article> articles;
+    private List<Article> articles;
+
+    private Blog(string rssUri, string uri, string title)
+    {
+        this.rssUri = rssUri;
+        this.uri = uri;
+        this.title = title;
+        articles = new List<Article>();
+    }
 
     public Blog(string rssUri)
     {
         this.rssUri = rssUri;
-        articles = new Article[] { };
-        Reload();
+        var xmlDocument = new XmlDocument();
+        xmlDocument.Load(rssUri);
+        uri = xmlDocument.GetElementsByTagName("link")[0].InnerText;
+        title = xmlDocument.GetElementsByTagName("title")[0].InnerText;
+        articles = new List<Article>();
+        foreach (var article in GetArticlesFromXmlDocument(xmlDocument))
+        {
+            articles.Add(article);
+        }
     }
 
-    private void Reload()
+    public static Blog FromRssUriOrEmpty(string rssUri)
     {
-        XmlDocument document = new XmlDocument();
-        document.Load(rssUri);
-
-        uri = document.GetElementsByTagName("link")[0].InnerText;
-        title = document.GetElementsByTagName("title")[0].InnerText;
-
-        var newArticles = new List<Article>();
-
-        bool isRss2 = document.DocumentElement.Name == "rss";
-        XmlNodeList itemNodes = document.GetElementsByTagName("item");
-        foreach (XmlNode itemNode in itemNodes)
+        try
         {
-            XmlElement itemElement = (XmlElement)itemNode;
-            string articleUri = itemElement.GetElementsByTagName("link")[0].InnerText;
-            XmlNodeList dateNodes = itemElement.GetElementsByTagName(isRss2 ? "pubDate" : "dc:date");
-            DateTime articleDate = DateTime.Parse(dateNodes[0].InnerText);
-            string articleTitle = itemElement.GetElementsByTagName("title")[0].InnerText;
-            Article newArticle = new Article(this, articleUri, articleDate, articleTitle);
-            newArticles.Add(newArticle);
+            return new Blog(rssUri);
         }
-
-        if (DateTime.Now - newArticles.First().Date >= TimeSpan.FromDays(30))
+        catch
         {
-            Console.WriteLine("警告: " + title + "(" + rssUri + ")は1ヵ月以上更新されていない");
+            return new Blog(rssUri, "", "RSSの取得に失敗");
         }
+    }
 
-        articles = newArticles;
+    private IEnumerable<Article> GetArticlesFromXmlDocument(XmlDocument xmlDocument)
+    {
+        var isRss2 = xmlDocument.DocumentElement.Name == "rss";
+        var itemNodes = xmlDocument.GetElementsByTagName("item");
+        foreach (var itemNode in itemNodes)
+        {
+            var itemElement = (XmlElement)itemNode;
+            var articleUri = itemElement.GetElementsByTagName("link")[0].InnerText;
+            var dateNodes = itemElement.GetElementsByTagName(isRss2 ? "pubDate" : "dc:date");
+            var articleDate = DateTime.Parse(dateNodes[0].InnerText);
+            var articleTitle = itemElement.GetElementsByTagName("title")[0].InnerText;
+            var article = new Article(this, articleUri, articleDate, articleTitle);
+            yield return article;
+        }
+    }
+
+    public string RssUri
+    {
+        get
+        {
+            return rssUri;
+        }
     }
 
     public string Uri
@@ -64,7 +83,7 @@ public class Blog
         }
     }
 
-    public ICollection<Article> Articles
+    public IList<Article> Articles
     {
         get
         {
