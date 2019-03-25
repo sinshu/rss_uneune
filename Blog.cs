@@ -37,9 +37,9 @@ public class Blog
         {
             return new Blog(rssUri);
         }
-        catch
+        catch (Exception e)
         {
-            return new Blog(rssUri, "", "RSSの取得に失敗");
+            return new Blog(rssUri, "", "[ERROR]" + e.Message);
         }
     }
 
